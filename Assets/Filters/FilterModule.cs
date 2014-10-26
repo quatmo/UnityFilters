@@ -74,22 +74,31 @@ public class FilterModule : MonoBehaviour {
 	void OnRenderImage(RenderTexture source, RenderTexture destination) {	
 
 		List<BaseFilter> activeSubscribers = subscribers.Where( s => s.enabled ).ToList();
-		
-		// Blit the screen contents as background for the filters.
-		Graphics.Blit(source, destination);
-		
-		if(glowRenderer.enabled) {
-			// Get glow filter subscribers
-			List<GlowFilter> glowFilterSubscribers = activeSubscribers.FindAll( s => s is GlowFilter ).ConvertAll( s => s as GlowFilter );
-			glowRenderer.RenderGlowFilter(glowFilterSubscribers, this.camera, source, destination);
-		}
+
+		// In the filters the source RT is blended with the result of a given effect. The next
+		// filter in the pipeline should blend onto the output of the previous(!) filter. We would like
+		// to keep blending the source back onto it self. But since it it does not seem to be possible to
+		// blend a rendertexture back onto itself we request and intermedieary RT and continously shift back and
+		// forth between this new RT and the source RT when rendering filters.
+		RenderTexture intermediary = RenderTexture.GetTemporary(source.width, source.height);
+
+//		if(glowRenderer.enabled) {
+//			// Get glow filter subscribers
+//			List<GlowFilter> glowFilterSubscribers = activeSubscribers.FindAll( s => s is GlowFilter ).ConvertAll( s => s as GlowFilter );
+//			source = glowRenderer.RenderGlowFilter(glowFilterSubscribers, this.camera, source, intermediary);
+//		}
 		
 		if(outlineRenderer.enabled) {
 			// Get the outline filter subscribers
 			List<OutlineFilter> outlineSubscribers = activeSubscribers.FindAll( s => s is OutlineFilter ).ConvertAll( s => s as OutlineFilter );
-			outlineRenderer.RenderOutlineFilter(outlineSubscribers, this.camera, source, destination);
+			source = outlineRenderer.RenderOutlineFilter(outlineSubscribers, this.camera, source, intermediary);
 		}
 
+		// Pass the results of the filters through Unitys render stage.
+		Graphics.Blit(source, destination);
+
+		// Clean up
+		intermediary.Release();
 	}
 
 	void OnPostRender() {

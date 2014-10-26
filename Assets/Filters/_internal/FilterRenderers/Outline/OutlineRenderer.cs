@@ -83,8 +83,8 @@ public class OutlineRenderer : BaseFilterRenderer
 	}
 
 
-	public void RenderOutlineFilter(List<OutlineFilter> subscribers, Camera filterCamera, RenderTexture source, RenderTexture destination) {
-		if(subscribers.Count == 0) return;
+	public RenderTexture RenderOutlineFilter(List<OutlineFilter> subscribers, Camera filterCamera, RenderTexture source, RenderTexture destination) {
+		if(subscribers.Count == 0) return source;
 
 		subscribers = subscribers.OrderBy( s => s.depth ).ToList();
 
@@ -150,6 +150,8 @@ public class OutlineRenderer : BaseFilterRenderer
 		Graphics.SetRenderTarget(null);
 		RenderTexture.ReleaseTemporary(filterEncodingRT);
 		RenderTexture.ReleaseTemporary(outlinesRT);
+
+		return destination;
 	}
 }
 
